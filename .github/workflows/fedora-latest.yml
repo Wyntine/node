@@ -24,7 +24,7 @@ jobs:
 
       - name: Install RPM build tools
         run: |
-          sudo apt-get install -y rpm rpmdevtools
+          sudo apt-get install -y rpm
 
       - name: Set up RPM build tree
         run: rpmdev-setuptree
