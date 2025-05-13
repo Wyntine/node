@@ -10,24 +10,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install build dependencies
+      - name: Install all build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3 g++-12 gcc-12 make python3-pip
+          sudo apt-get install -y \
+            python3 g++-12 gcc-12 make python3-pip \
+            rpm build-essential \
+            ccache mold
+
+      - name: ccache
+        uses: hendrikmuhs/ccache-action@v1.2
 
       - name: Build project
         run: |
           cd $GITHUB_WORKSPACE
-          export CXX=g++-12
+          export CC="ccache gcc"
+          export CXX="ccache g++"
+          export LDFLAGS="-fuse-ld=mold"
           ./configure
           make -j$(nproc)
 
-      - name: Install RPM build tools
+      - name: Create RPM build environment
         run: |
-          sudo apt-get install -y rpm
-
-      - name: Set up RPM build tree
-        run: rpmdev-setuptree
+          mkdir -p $HOME/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+          mkdir -p $HOME/rpmbuild/BUILDROOT/nodejs
+          echo "%_topdir $HOME/rpmbuild" > ~/.rpmmacros
 
       - name: Package built artifacts
         run: |
@@ -60,7 +67,7 @@ jobs:
           tar xzf %{_sourcedir}/node.tar.gz
 
           %build
-          cd node-v%{version}
+          cd node
           ./configure --prefix=%{_prefix} --shared-openssl --shared-zlib
           make %{?_smp_mflags}
 
