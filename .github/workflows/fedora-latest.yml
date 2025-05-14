@@ -40,30 +40,30 @@ jobs:
         run: |
           mkdir -p $HOME/rpmbuild/SPECS
           cat > $HOME/rpmbuild/SPECS/nodejs.spec <<'EOF'
-          Name:           nodejs
+          Name:           node
           Version:        25.0.0
           Release:        1%{?dist}
           Summary:        Custom Node.js runtime with ESM cache exposed
 
           License:        MIT
           URL:            https://github.com/Wyntine/node
-          Source0:        node.tar.gz
+          Source0:        node-{%version}.tar.gz
 
           %description
           Node.js™ is a JavaScript runtime built on V8. This package is built from a custom fork.
 
           %prep
           %setup -q -c -T
-          tar xzf %{_sourcedir}/node.tar.gz
+          tar xzf %{_sourcedir}/node-{%version}.tar.gz
 
           %build
-          cd node
+          cd node-{%version}
           ./configure --prefix=%{_prefix} --shared-openssl --shared-zlib
           make %{?_smp_mflags}
 
           %install
           rm -rf %{buildroot}
-          cd node
+          cd node-{%version}
           make install DESTDIR=%{buildroot}
 
           %files
