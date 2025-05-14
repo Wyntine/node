@@ -47,23 +47,23 @@ jobs:
 
           License:        MIT
           URL:            https://github.com/Wyntine/node
-          Source0:        node-{%version}.tar.gz
+          Source0:        node-%{version}.tar.gz
 
           %description
           Node.js™ is a JavaScript runtime built on V8. This package is built from a custom fork.
 
           %prep
           %setup -q -c -T
-          tar xzf %{_sourcedir}/node-{%version}.tar.gz
+          tar xzf %{_sourcedir}/node-%{version}.tar.gz
 
           %build
-          cd node-{%version}
+          cd node-%{version}
           ./configure --prefix=%{_prefix} --shared-openssl --shared-zlib
           make %{?_smp_mflags}
 
           %install
           rm -rf %{buildroot}
-          cd node-{%version}
+          cd node-%{version}
           make install DESTDIR=%{buildroot}
 
           %files
