@@ -84,7 +84,7 @@ jobs:
       - name: Package built artifacts
         run: |
           cd $GITHUB_WORKSPACE
-          TAR=node.tar.gz
+          TAR=node-25.0.0.tar.gz
           make install DESTDIR=$HOME/rpmbuild/BUILDROOT/nodejs
           tar czf $TAR -C $HOME/rpmbuild/BUILDROOT nodejs
           mv $TAR $HOME/rpmbuild/SOURCES/$TAR
