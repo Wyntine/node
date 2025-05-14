@@ -99,7 +99,7 @@ jobs:
           TAR=node.tar.gz
           make install DESTDIR=$HOME/rpmbuild/BUILDROOT/nodejs
           tar czf $TAR -C $HOME/rpmbuild/BUILDROOT nodejs
-          mv $TAR $HOME/rpmbuild/SOURCES/
+          mv $TAR $HOME/rpmbuild/SOURCES/$TAR
 
       - name: Build the RPM
         run: rpmbuild -ba $HOME/rpmbuild/SPECS/nodejs.spec
