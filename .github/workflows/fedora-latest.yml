@@ -36,6 +36,14 @@ jobs:
           ./configure
           make -j$(nproc)
 
+      - name: Package built artifacts
+        run: |
+          cd $GITHUB_WORKSPACE
+          TAR=node.tar.gz
+          make install DESTDIR=$HOME/rpmbuild/BUILDROOT/nodejs
+          tar czf $TAR -C $HOME/rpmbuild/BUILDROOT nodejs
+          mv $TAR $HOME/rpmbuild/SOURCES/
+
       - name: Add RPM spec
         run: |
           mkdir -p $HOME/rpmbuild/SPECS
