@@ -1,93 +1,140 @@
-name: Fedora Latest
+# name: Fedora Latest
+# on:
+#   push:
+#     branches:
+#       - main
+# jobs:
+#   build:
+#     name: Build
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v4
+
+#       - name: Install all build dependencies
+#         run: |
+#           sudo apt-get update
+#           sudo apt-get install -y
+#             gcc gcc-c++ openssl-devel pkgconfig python3 zlib-devel g++-12 gcc-12 make python3-pip rpm build-essential ccache mold
+
+#       - name: ccache
+#         uses: hendrikmuhs/ccache-action@v1.2
+#         with:
+#           max-size: 5G
+
+#       - name: Build project
+#         run: |
+#           cd $GITHUB_WORKSPACE
+#           export CC="ccache gcc"
+#           export CXX="ccache g++"
+#           export LDFLAGS="-fuse-ld=mold"
+#           ./configure
+#           make -j$(nproc)
+
+#       - name: Create RPM build environment
+#         run: |
+#           mkdir -p $HOME/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
+#           mkdir -p $HOME/rpmbuild/BUILDROOT/nodejs
+#           echo "%_topdir $HOME/rpmbuild" > ~/.rpmmacros
+
+#       - name: Package built artifacts
+#         run: |
+#           cd $GITHUB_WORKSPACE
+#           TAR=node.tar.gz
+#           make install DESTDIR=$HOME/rpmbuild/BUILDROOT/nodejs
+#           tar czf $TAR -C $HOME/rpmbuild/BUILDROOT nodejs
+#           mv $TAR $HOME/rpmbuild/SOURCES/
+
+#       - name: Add RPM spec
+#         run: |
+#           cat > $HOME/rpmbuild/SPECS/nodejs.spec <<'EOF'
+#           Name:           nodejs
+#           Version:        25.0.0
+#           Release:        1%{?dist}
+#           Summary:        Custom Node.js runtime with ESM cache exposed
+
+#           License:        MIT
+#           URL:            https://github.com/Wyntine/node
+#           Source0:        node.tar.gz
+
+#           BuildRequires:  gcc, gcc-c++, make, python3, openssl-devel, zlib-devel, pkgconfig
+#           Requires:       libstdc++
+
+#           %description
+#           Node.js™ is a JavaScript runtime built on V8. This package is built from a custom fork.
+
+#           %prep
+#           %setup -q -c -T
+#           tar xzf %{_sourcedir}/node.tar.gz
+
+#           %build
+#           cd node
+#           ./configure --prefix=%{_prefix} --shared-openssl --shared-zlib
+#           make %{?_smp_mflags}
+
+#           %install
+#           rm -rf %{buildroot}
+#           cd node
+#           make install DESTDIR=%{buildroot}
+
+#           %files
+#           %license LICENSE
+#           %{_bindir}/node
+#           %{_bindir}/npm
+#           %{_bindir}/npx
+#           %{_prefix}/lib/node_modules
+#           EOF
+
+#       - name: Build RPM
+#         run: rpmbuild -ba $HOME/rpmbuild/SPECS/nodejs.spec
+
+#       - name: Upload RPM artifact
+#         uses: actions/upload-artifact@v4
+#         with:
+#           name: nodejs-rpm
+#           path: $HOME/rpmbuild/RPMS/**/*.rpm
+
+name: Build & Publish Node.js RPM
+
 on:
   push:
     branches:
       - main
+      - 'release/*'
+  workflow_dispatch:
+
 jobs:
-  build:
-    name: Build
+  build-nodejs-rpm:
     runs-on: ubuntu-latest
+    container:
+      image: fedora:latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout your fork
+        uses: actions/checkout@v4
 
-      - name: Install all build dependencies
+      - name: Install RPM tooling & plugins
         run: |
-          sudo apt-get update
-          sudo apt-get install -y
-            gcc gcc-c++ openssl-devel pkgconfig python3 zlib-devel g++-12 gcc-12 make python3-pip rpm build-essential ccache mold
+          dnf install -y rpmdevtools dnf-plugins-core redhat-rpm-config
+          # rpmdevtools provides rpmdev-setuptree, and dnf-plugins-core provides dnf builddep :contentReference[oaicite:9]{index=9}
 
-      - name: ccache
-        uses: hendrikmuhs/ccache-action@v1.2
-        with:
-          max-size: 5G
-
-      - name: Build project
+      - name: Install spec build dependencies
         run: |
-          cd $GITHUB_WORKSPACE
-          export CC="ccache gcc"
-          export CXX="ccache g++"
-          export LDFLAGS="-fuse-ld=mold"
-          ./configure
-          make -j$(nproc)
+          dnf builddep -y $HOME/rpmbuild/SPECS/nodejs.spec
+          # installs all BuildRequires listed in nodejs.spec into RPM database :contentReference[oaicite:10]{index=10}
 
-      - name: Create RPM build environment
+      - name: Prepare the RPM build tree
+        run: rpmdev-setuptree
+
+      - name: Copy source & spec into the tree
         run: |
-          mkdir -p $HOME/rpmbuild/{BUILD,RPMS,SOURCES,SPECS,SRPMS}
-          mkdir -p $HOME/rpmbuild/BUILDROOT/nodejs
-          echo "%_topdir $HOME/rpmbuild" > ~/.rpmmacros
+          # Assume your build job has created node.tar.gz and your nodejs.spec
+          cp node.tar.gz $HOME/rpmbuild/SOURCES/
+          cp nodejs.spec $HOME/rpmbuild/SPECS/
 
-      - name: Package built artifacts
-        run: |
-          cd $GITHUB_WORKSPACE
-          TAR=node.tar.gz
-          make install DESTDIR=$HOME/rpmbuild/BUILDROOT/nodejs
-          tar czf $TAR -C $HOME/rpmbuild/BUILDROOT nodejs
-          mv $TAR $HOME/rpmbuild/SOURCES/
-
-      - name: Add RPM spec
-        run: |
-          cat > $HOME/rpmbuild/SPECS/nodejs.spec <<'EOF'
-          Name:           nodejs
-          Version:        25.0.0
-          Release:        1%{?dist}
-          Summary:        Custom Node.js runtime with ESM cache exposed
-
-          License:        MIT
-          URL:            https://github.com/Wyntine/node
-          Source0:        node.tar.gz
-
-          BuildRequires:  gcc, gcc-c++, make, python3, openssl-devel, zlib-devel, pkgconfig
-          Requires:       libstdc++
-
-          %description
-          Node.js™ is a JavaScript runtime built on V8. This package is built from a custom fork.
-
-          %prep
-          %setup -q -c -T
-          tar xzf %{_sourcedir}/node.tar.gz
-
-          %build
-          cd node
-          ./configure --prefix=%{_prefix} --shared-openssl --shared-zlib
-          make %{?_smp_mflags}
-
-          %install
-          rm -rf %{buildroot}
-          cd node
-          make install DESTDIR=%{buildroot}
-
-          %files
-          %license LICENSE
-          %{_bindir}/node
-          %{_bindir}/npm
-          %{_bindir}/npx
-          %{_prefix}/lib/node_modules
-          EOF
-
-      - name: Build RPM
+      - name: Build the RPM
         run: rpmbuild -ba $HOME/rpmbuild/SPECS/nodejs.spec
 
-      - name: Upload RPM artifact
+      - name: Upload RPM artifacts
         uses: actions/upload-artifact@v4
         with:
           name: nodejs-rpm
