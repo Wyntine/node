@@ -57,13 +57,11 @@ jobs:
           tar xzf %{_sourcedir}/node-%{version}.tar.gz
 
           %build
-          cd node-%{version}
           ./configure --prefix=%{_prefix} --shared-openssl --shared-zlib
           make %{?_smp_mflags}
 
           %install
           rm -rf %{buildroot}
-          cd node-%{version}
           make install DESTDIR=%{buildroot}
 
           %files
