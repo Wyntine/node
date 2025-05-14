@@ -81,10 +81,6 @@ jobs:
       - name: Prepare the RPM build tree
         run: rpmdev-setuptree
 
-      - name: Copy source & spec into the tree
-        run: |
-          cp node.tar.gz $HOME/rpmbuild/SOURCES/
-
       - name: Package built artifacts
         run: |
           cd $GITHUB_WORKSPACE
