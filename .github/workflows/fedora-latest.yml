@@ -13,10 +13,8 @@ jobs:
       - name: Install all build dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y \
-            python3 g++-12 gcc-12 make python3-pip \
-            rpm build-essential \
-            ccache mold
+          sudo apt-get install -y
+            gcc gcc-c++ openssl-devel pkgconfig python3 zlib-devel g++-12 gcc-12 make python3-pip rpm build-essential ccache mold
 
       - name: ccache
         uses: hendrikmuhs/ccache-action@v1.2
